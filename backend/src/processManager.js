@@ -60,16 +60,33 @@ class ProcessManager {
     this.log(`Bắt đầu chạy file game: ${path.basename(jarPath)}`);
     this.persistSession(jarPath, true);
 
-    // Thông số JVM tối ưu hoá:
-    // - -Xms32m -Xmx128m: Khống chế RAM tối đa 128MB cho mỗi game
-    // - -Djava.awt.headless=false: Cho phép tạo cửa sổ AWT/Canvas trong Xvfb
-    const args = [
-      '-Xms32m',
-      '-Xmx128m',
-      '-Djava.awt.headless=false',
-      '-jar',
-      jarPath
-    ];
+    // Kiểm tra bộ giả lập J2ME MicroEmulator
+    const emulatorJar = path.join(__dirname, '../lib/microemulator.jar');
+    let args;
+
+    if (fs.existsSync(emulatorJar)) {
+      this.log(`🎮 Khởi chạy game J2ME qua MicroEmulator: ${path.basename(jarPath)}`);
+      args = [
+        '-Xms32m',
+        '-Xmx128m',
+        '-Djava.awt.headless=false',
+        '-jar',
+        emulatorJar,
+        '--resizableDevice',
+        '240',
+        '320',
+        jarPath
+      ];
+    } else {
+      this.log(`Khởi chạy trực tiếp: ${path.basename(jarPath)}`);
+      args = [
+        '-Xms32m',
+        '-Xmx128m',
+        '-Djava.awt.headless=false',
+        '-jar',
+        jarPath
+      ];
+    }
 
     const env = {
       ...process.env,

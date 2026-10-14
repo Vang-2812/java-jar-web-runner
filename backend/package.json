@@ -1,0 +1,16 @@
+{
+  "name": "java-runner-backend",
+  "version": "1.0.0",
+  "description": "Headless J2ME runner and streaming backend",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "test": "node tests/process_test.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "cors": "^2.8.5",
+    "multer": "^1.4.5-lts.1",
+    "ws": "^8.18.0"
+  }
+}

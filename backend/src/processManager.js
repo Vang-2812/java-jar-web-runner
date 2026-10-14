@@ -1,4 +1,4 @@
-const { spawn } = require('child_process');
+const { spawn, exec, execSync } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 
@@ -47,6 +47,27 @@ class ProcessManager {
     }
   }
 
+  getMidletClass(jarPath) {
+    try {
+      let out = '';
+      try {
+        out = execSync(`tar -xf "${jarPath}" -O META-INF/MANIFEST.MF 2>/dev/null`, { stdio: ['pipe', 'pipe', 'ignore'] }).toString();
+      } catch (e) {
+        try {
+          out = execSync(`unzip -p "${jarPath}" META-INF/MANIFEST.MF 2>/dev/null`, { stdio: ['pipe', 'pipe', 'ignore'] }).toString();
+        } catch (e2) {}
+      }
+
+      if (out) {
+        const match = out.match(/MIDlet-1:\s*[^,]+,[^,]*,\s*([^\r\n]+)/i);
+        if (match && match[1]) {
+          return match[1].trim();
+        }
+      }
+    } catch (err) {}
+    return null;
+  }
+
   start(jarPath) {
     if (!jarPath || !fs.existsSync(jarPath)) {
       throw new Error(`File không tồn tại: ${jarPath}`);
@@ -60,32 +81,50 @@ class ProcessManager {
     this.log(`Bắt đầu chạy file game: ${path.basename(jarPath)}`);
     this.persistSession(jarPath, true);
 
-    // Kiểm tra bộ giả lập J2ME MicroEmulator
     const emulatorJar = path.join(__dirname, '../lib/microemulator.jar');
     const nokiaUiJar = path.join(__dirname, '../lib/microemu-nokiaui.jar');
     let args;
 
     if (fs.existsSync(emulatorJar)) {
+      // BẮT BUỘC đưa cả microemulator, nokiaui và file game .jar vào classpath!
       const cpList = [emulatorJar];
       if (fs.existsSync(nokiaUiJar)) cpList.push(nokiaUiJar);
-      // Trên Linux dùng dấu hai chấm ':' để phân cách classpath
-      const cp = cpList.join(process.platform === 'win32' ? ';' : ':');
+      cpList.push(jarPath);
 
-      this.log(`🎮 Khởi chạy game J2ME qua MicroEmulator (Nokia UI): ${path.basename(jarPath)}`);
-      args = [
-        '-Xms32m',
-        '-Xmx128m',
-        '-Djava.awt.headless=false',
-        '-cp',
-        cp,
-        'org.microemu.app.Main',
-        '--resizableDevice',
-        '240',
-        '320',
-        jarPath
-      ];
+      const cp = cpList.join(process.platform === 'win32' ? ';' : ':');
+      const midletClass = this.getMidletClass(jarPath);
+
+      if (midletClass) {
+        this.log(`🎯 Tự động chạy MIDlet: ${midletClass}`);
+        args = [
+          '-Xms32m',
+          '-Xmx128m',
+          '-Djava.awt.headless=false',
+          '-cp',
+          cp,
+          'org.microemu.app.Main',
+          '--resizableDevice',
+          '240',
+          '320',
+          midletClass
+        ];
+      } else {
+        this.log(`Không tìm thấy MIDlet class, chạy launcher: ${path.basename(jarPath)}`);
+        args = [
+          '-Xms32m',
+          '-Xmx128m',
+          '-Djava.awt.headless=false',
+          '-cp',
+          cp,
+          'org.microemu.app.Main',
+          '--resizableDevice',
+          '240',
+          '320',
+          jarPath
+        ];
+      }
     } else {
-      this.log(`Khởi chạy trực tiếp: ${path.basename(jarPath)}`);
+      this.log(`Khởi chạy trực tiếp (Java SE): ${path.basename(jarPath)}`);
       args = [
         '-Xms32m',
         '-Xmx128m',
@@ -124,6 +163,13 @@ class ProcessManager {
         this.log(`Lỗi tiến trình Java: ${err.message}`);
         this.currentProcess = null;
       });
+
+      // Tự động gửi phím Enter sau 1.5 giây để đảm bảo game vào ngay nếu có màn hình Start
+      if (process.platform === 'linux') {
+        setTimeout(() => {
+          exec('DISPLAY=:99 xdotool key Return 2>/dev/null');
+        }, 1500);
+      }
     } catch (err) {
       this.log(`Không thể khởi chạy java process: ${err.message}`);
       throw err;

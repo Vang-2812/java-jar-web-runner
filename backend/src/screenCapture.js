@@ -12,30 +12,16 @@ class ScreenCapture {
 
   captureFrame() {
     return new Promise((resolve) => {
-      // Nếu không phải Linux (chạy dev trên Windows)
       if (!this.isLinux) {
         return resolve(this.getFallbackFrame());
       }
 
-      // Tìm cửa sổ của Java / MicroEmulator để chụp đúng cửa sổ game thay vì cả màn hình đen
-      exec(`DISPLAY=${this.display} xdotool search --onlyvisible --class java 2>/dev/null | tail -1`, (findErr, stdout) => {
-        const windowId = stdout && stdout.trim();
-        const target = (windowId && windowId.length > 0) ? windowId : 'root';
-
-        exec(`DISPLAY=${this.display} import -window ${target} -quality 70 ${this.tempPath} 2>/dev/null`, (err) => {
-          if (err || !fs.existsSync(this.tempPath)) {
-            // Nếu chụp theo windowId lỗi thì fallback sang chụp root
-            exec(`DISPLAY=${this.display} import -window root -quality 70 ${this.tempPath} 2>/dev/null`, (rootErr) => {
-              if (rootErr || !fs.existsSync(this.tempPath)) {
-                return resolve(this.getFallbackFrame());
-              }
-              this.readAndReturn(resolve);
-            });
-            return;
-          }
-
-          this.readAndReturn(resolve);
-        });
+      // Xvfb được cấu hình đúng kích thước 242x350 của MicroEmulator
+      exec(`DISPLAY=${this.display} import -window root -quality 75 ${this.tempPath} 2>/dev/null`, (err) => {
+        if (err || !fs.existsSync(this.tempPath)) {
+          return resolve(this.getFallbackFrame());
+        }
+        this.readAndReturn(resolve);
       });
     });
   }

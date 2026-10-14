@@ -13,7 +13,8 @@ const KEY_MAPPINGS = {
   
   // Phím mềm Nokia
   'SOFT_LEFT': 'F1', 'SOFT_RIGHT': 'F2',
-  'CALL': 'c', 'END': 'Escape'
+  'CALL': 'c', 'END': 'Escape',
+  'BACKSPACE': 'BackSpace'
 };
 
 function setupWebSocket(server, pm) {

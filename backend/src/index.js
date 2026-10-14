@@ -6,10 +6,12 @@ const fs = require('fs');
 const http = require('http');
 const { ProcessManager } = require('./processManager');
 const { setupWebSocket } = require('./wsGateway');
+const { NsoBotManager } = require('./nsoBotManager');
 
 const app = express();
 const server = http.createServer(app);
 const pm = new ProcessManager();
+const nsoBot = new NsoBotManager();
 const wsGateway = setupWebSocket(server, pm);
 
 app.use(cors());
@@ -92,7 +94,7 @@ app.get('/api/games', (req, res) => {
   }
 });
 
-// API Bắt đầu phiên treo game
+// API Bắt đầu phiên treo game thông thường (Interactive session)
 app.post('/api/session/start', (req, res) => {
   const { jarPath, gameName } = req.body;
   let targetPath = jarPath;
@@ -113,7 +115,7 @@ app.post('/api/session/start', (req, res) => {
   }
 });
 
-// API Dừng phiên treo game
+// API Dừng phiên treo game thông thường
 app.post('/api/session/stop', (req, res) => {
   const status = pm.stop();
   res.json(status);
@@ -122,6 +124,40 @@ app.post('/api/session/stop', (req, res) => {
 // API Lấy trạng thái phiên treo hiện tại
 app.get('/api/session/status', (req, res) => {
   res.json(pm.getStatus());
+});
+
+// ================= NSO BOT 24/7 SPECIALIZED ENDPOINTS =================
+// API Bật NSO Bot Treo 24/7 (Headless 0.1% CPU)
+app.post('/api/nso/start', (req, res) => {
+  try {
+    const status = nsoBot.start(req.body);
+    res.json(status);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// API Dừng NSO Bot
+app.post('/api/nso/stop', (req, res) => {
+  const status = nsoBot.stop();
+  res.json(status);
+});
+
+// API Lấy trạng thái NSO Bot
+app.get('/api/nso/status', (req, res) => {
+  res.json(nsoBot.getStatus());
+});
+
+// API Chụp ảnh màn hình theo yêu cầu (On-Demand Snapshot - không tốn CPU nền)
+app.get('/api/nso/snapshot', async (req, res) => {
+  try {
+    const { ScreenCapture } = require('./screenCapture');
+    const capturer = new ScreenCapture();
+    const frame = await capturer.captureFrame();
+    res.type('image/jpeg').send(frame);
+  } catch (err) {
+    res.status(500).send(err.message);
+  }
 });
 
 const PORT = process.env.PORT || 7860;
@@ -133,4 +169,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { app, server, pm };
+module.exports = { app, server, pm, nsoBot };

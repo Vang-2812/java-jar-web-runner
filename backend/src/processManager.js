@@ -62,16 +62,23 @@ class ProcessManager {
 
     // Kiểm tra bộ giả lập J2ME MicroEmulator
     const emulatorJar = path.join(__dirname, '../lib/microemulator.jar');
+    const nokiaUiJar = path.join(__dirname, '../lib/microemu-nokiaui.jar');
     let args;
 
     if (fs.existsSync(emulatorJar)) {
-      this.log(`🎮 Khởi chạy game J2ME qua MicroEmulator: ${path.basename(jarPath)}`);
+      const cpList = [emulatorJar];
+      if (fs.existsSync(nokiaUiJar)) cpList.push(nokiaUiJar);
+      // Trên Linux dùng dấu hai chấm ':' để phân cách classpath
+      const cp = cpList.join(process.platform === 'win32' ? ';' : ':');
+
+      this.log(`🎮 Khởi chạy game J2ME qua MicroEmulator (Nokia UI): ${path.basename(jarPath)}`);
       args = [
         '-Xms32m',
         '-Xmx128m',
         '-Djava.awt.headless=false',
-        '-jar',
-        emulatorJar,
+        '-cp',
+        cp,
+        'org.microemu.app.Main',
         '--resizableDevice',
         '240',
         '320',

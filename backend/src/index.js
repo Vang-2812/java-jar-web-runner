@@ -45,6 +45,18 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// API Chụp màn hình trực tiếp để kiểm tra hiển thị
+app.get('/api/screenshot', async (req, res) => {
+  try {
+    const { ScreenCapture } = require('./screenCapture');
+    const capturer = new ScreenCapture();
+    const frame = await capturer.captureFrame();
+    res.type('image/jpeg').send(frame);
+  } catch (err) {
+    res.status(500).send(err.message);
+  }
+});
+
 // API Upload file .jar
 app.post('/api/upload', upload.single('game'), (req, res) => {
   if (!req.file) {

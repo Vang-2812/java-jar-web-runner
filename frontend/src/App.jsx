@@ -10,7 +10,7 @@ import { useKeyboard } from './hooks/useKeyboard';
 import { Settings, Gamepad2, Wifi, WifiOff } from 'lucide-react';
 
 export default function App() {
-  const [frameUrl, setFrameUrl] = useState(null);
+  const [frameBlob, setFrameBlob] = useState(null);
   const [sessionStatus, setSessionStatus] = useState(null);
   const [isConnected, setIsConnected] = useState(false);
   const [games, setGames] = useState([]);
@@ -36,8 +36,8 @@ export default function App() {
 
     // Kết nối WebSocket để stream hình ảnh và trạng thái
     wsService.connect(
-      (newFrameUrl) => {
-        setFrameUrl(newFrameUrl);
+      (newBlob) => {
+        setFrameBlob(newBlob);
       },
       (msg) => {
         if (msg.type === 'INIT_STATUS' && msg.data) {
@@ -111,7 +111,7 @@ export default function App() {
         {/* Cột Trái: Màn hình Game + Bàn phím ảo */}
         <section className="lg:col-span-6 xl:col-span-5 flex flex-col items-center gap-4">
           <GameCanvas
-            frameUrl={frameUrl}
+            frameBlob={frameBlob}
             isRunning={sessionStatus?.running}
             isConnected={isConnected}
           />
@@ -140,7 +140,7 @@ export default function App() {
           refreshData();
           wsService.disconnect();
           wsService.connect(
-            (url) => setFrameUrl(url),
+            (blob) => setFrameBlob(blob),
             (msg) => msg.type === 'INIT_STATUS' && setSessionStatus(msg.data),
             (state) => setIsConnected(state)
           );

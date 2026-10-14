@@ -1,9 +1,42 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { Maximize2, Minimize2, Tv } from 'lucide-react';
 
-export function GameCanvas({ frameUrl, isRunning, isConnected }) {
+export function GameCanvas({ frameBlob, isRunning, isConnected }) {
   const containerRef = useRef(null);
+  const canvasRef = useRef(null);
+  const [hasReceivedFrame, setHasReceivedFrame] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+
+  // Vẽ frame trực tiếp lên HTML5 Canvas bằng createImageBitmap (Chống giật/nhấp nháy 100%)
+  useEffect(() => {
+    if (!frameBlob) return;
+    let isCancelled = false;
+
+    createImageBitmap(frameBlob)
+      .then((bitmap) => {
+        if (isCancelled) {
+          bitmap.close();
+          return;
+        }
+        const canvas = canvasRef.current;
+        if (canvas) {
+          if (canvas.width !== bitmap.width || canvas.height !== bitmap.height) {
+            canvas.width = bitmap.width;
+            canvas.height = bitmap.height;
+          }
+          const ctx = canvas.getContext('2d');
+          ctx.imageSmoothingEnabled = false; // Chuẩn pixel art nét căng
+          ctx.drawImage(bitmap, 0, 0);
+          setHasReceivedFrame(true);
+        }
+        bitmap.close();
+      })
+      .catch(() => {});
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [frameBlob]);
 
   const toggleFullscreen = () => {
     if (!containerRef.current) return;
@@ -51,13 +84,14 @@ export function GameCanvas({ frameUrl, isRunning, isConnected }) {
 
       {/* Screen Display Area */}
       <div className="flex-1 w-full h-full relative flex items-center justify-center bg-black overflow-hidden">
-        {frameUrl ? (
-          <img
-            src={frameUrl}
-            alt="Màn hình game J2ME"
-            className="w-full h-full object-contain pixelated select-none pointer-events-none"
-          />
-        ) : (
+        <canvas
+          ref={canvasRef}
+          className={`w-full h-full object-contain pixelated select-none pointer-events-none ${
+            hasReceivedFrame ? 'block' : 'hidden'
+          }`}
+        />
+
+        {!hasReceivedFrame && (
           <div className="flex flex-col items-center justify-center p-6 text-center text-slate-500">
             <div className="w-12 h-12 rounded-full border-2 border-dashed border-slate-700 animate-spin flex items-center justify-center mb-3">
               <div className="w-2 h-2 rounded-full bg-emerald-400" />

@@ -19,34 +19,53 @@ const KEY_MAPPINGS = {
 function setupWebSocket(server, pm) {
   const wss = new WebSocketServer({ server, path: '/ws' });
   const capturer = new ScreenCapture();
-  let streamInterval = null;
+  let streamTimer = null;
+  let isCapturing = false;
+  let isStreaming = false;
+
+  const captureLoop = async () => {
+    if (!isStreaming || wss.clients.size === 0) {
+      stopStream();
+      return;
+    }
+
+    if (!isCapturing) {
+      isCapturing = true;
+      try {
+        const frameBuffer = await capturer.captureFrame();
+        if (frameBuffer && isStreaming && wss.clients.size > 0) {
+          wss.clients.forEach((client) => {
+            if (client.readyState === 1) { // 1 = OPEN
+              client.send(frameBuffer);
+            }
+          });
+        }
+      } catch (err) {
+      } finally {
+        isCapturing = false;
+      }
+    }
+
+    if (isStreaming && wss.clients.size > 0) {
+      // Chờ 180ms sau khi frame trước hoàn tất mới chụp frame tiếp theo -> Tránh chồng chéo tiến trình gây nghẽn CPU
+      streamTimer = setTimeout(captureLoop, 180);
+    }
+  };
 
   const startStream = () => {
-    if (streamInterval) return;
+    if (isStreaming) return;
+    isStreaming = true;
     pm.log('Có client kết nối web - Bắt đầu stream màn hình game.');
-
-    streamInterval = setInterval(async () => {
-      if (wss.clients.size === 0) {
-        stopStream();
-        return;
-      }
-
-      // Chỉ chụp màn hình khi đang có game chạy hoặc để hiển thị trạng thái
-      const frameBuffer = await capturer.captureFrame();
-      if (frameBuffer) {
-        wss.clients.forEach((client) => {
-          if (client.readyState === 1) { // 1 = OPEN
-            client.send(frameBuffer);
-          }
-        });
-      }
-    }, 150); // ~6.6 FPS: Vừa đủ mượt để quan sát vừa tiết kiệm băng thông và CPU
+    captureLoop();
   };
 
   const stopStream = () => {
-    if (streamInterval) {
-      clearInterval(streamInterval);
-      streamInterval = null;
+    if (isStreaming) {
+      isStreaming = false;
+      if (streamTimer) {
+        clearTimeout(streamTimer);
+        streamTimer = null;
+      }
       pm.log('Không còn client web nào - Tạm dừng stream màn hình (Treo game ngầm tối ưu 100% CPU).');
     }
   };
@@ -73,12 +92,12 @@ function setupWebSocket(server, pm) {
         if (data.type === 'KEY_DOWN' && KEY_MAPPINGS[data.key]) {
           const xKey = KEY_MAPPINGS[data.key];
           if (process.platform === 'linux') {
-            exec(`DISPLAY=:99 xdotool keydown ${xKey}`);
+            exec(`DISPLAY=:99 xdotool keydown ${xKey}`, { timeout: 300 }, () => {});
           }
         } else if (data.type === 'KEY_UP' && KEY_MAPPINGS[data.key]) {
           const xKey = KEY_MAPPINGS[data.key];
           if (process.platform === 'linux') {
-            exec(`DISPLAY=:99 xdotool keyup ${xKey}`);
+            exec(`DISPLAY=:99 xdotool keyup ${xKey}`, { timeout: 300 }, () => {});
           }
         }
       } catch (err) {

@@ -38,10 +38,9 @@ class WebSocketService {
             if (this.onStatusCallback) this.onStatusCallback(json);
           } catch (e) {}
         } else if (event.data instanceof ArrayBuffer) {
-          // Frame hình ảnh nhị phân từ backend
+          // Frame hình ảnh nhị phân từ backend - truyền trực tiếp Blob cho Canvas xử lý
           const blob = new Blob([event.data], { type: 'image/jpeg' });
-          const url = URL.createObjectURL(blob);
-          if (this.onFrameCallback) this.onFrameCallback(url);
+          if (this.onFrameCallback) this.onFrameCallback(blob);
         }
       };
 

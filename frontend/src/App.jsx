@@ -15,6 +15,7 @@ import { Settings, Gamepad2, Wifi, WifiOff, Swords, Monitor } from 'lucide-react
 export default function App() {
   const [activeTab, setActiveTab] = useState('nso'); // 'nso' | 'interactive'
   const [frameBlob, setFrameBlob] = useState(null);
+  const [binaryBuffer, setBinaryBuffer] = useState(null);
   const [sessionStatus, setSessionStatus] = useState(null);
   const [nsoStatus, setNsoStatus] = useState(null);
   const [isConnected, setIsConnected] = useState(false);
@@ -55,6 +56,9 @@ export default function App() {
       },
       (connState) => {
         setIsConnected(connState);
+      },
+      (binBuf) => {
+        setBinaryBuffer(binBuf);
       }
     );
 
@@ -194,6 +198,7 @@ export default function App() {
             {/* Cột Trái: Màn hình Game + Bàn phím ảo */}
             <section className="lg:col-span-6 xl:col-span-5 flex flex-col items-center gap-4">
               <GameCanvas
+                binaryBuffer={binaryBuffer}
                 frameBlob={frameBlob}
                 isRunning={sessionStatus?.running}
                 isConnected={isConnected}
@@ -227,7 +232,8 @@ export default function App() {
           wsService.connect(
             (blob) => setFrameBlob(blob),
             (msg) => msg.type === 'INIT_STATUS' && setSessionStatus(msg.data),
-            (state) => setIsConnected(state)
+            (state) => setIsConnected(state),
+            (binBuf) => setBinaryBuffer(binBuf)
           );
         }}
       />

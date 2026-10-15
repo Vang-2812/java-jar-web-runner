@@ -84,13 +84,16 @@ class NsoBotManager {
       }
     }
 
-    const emulatorJar = path.join(__dirname, '../lib/microemulator.jar');
-    const nokiaUiJar = path.join(__dirname, '../lib/microemu-nokiaui.jar');
+    const canvasStreamJar = path.join(__dirname, '../lib/canvasstream.jar');
 
-    const cpList = [emulatorJar];
+    const cpList = [];
+    if (fs.existsSync(canvasStreamJar)) cpList.push(canvasStreamJar);
+    cpList.push(emulatorJar);
     if (fs.existsSync(nokiaUiJar)) cpList.push(nokiaUiJar);
     if (targetJar) cpList.push(targetJar);
     const cp = cpList.join(process.platform === 'win32' ? ';' : ':');
+
+    const mainClass = fs.existsSync(canvasStreamJar) ? 'com.canvasstream.Main' : 'org.microemu.app.Main';
 
     this.log(`🚀 Khởi chạy NSO Bot ở chế độ Headless (Treo ngầm 24/7 tối ưu 0.1% CPU)...`);
 
@@ -100,7 +103,7 @@ class NsoBotManager {
       '-Djava.awt.headless=false',
       '-cp',
       cp,
-      'org.microemu.app.Main',
+      mainClass,
       '--resizableDevice',
       '240',
       '320',

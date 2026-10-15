@@ -83,16 +83,20 @@ class ProcessManager {
 
     const emulatorJar = path.join(__dirname, '../lib/microemulator.jar');
     const nokiaUiJar = path.join(__dirname, '../lib/microemu-nokiaui.jar');
+    const canvasStreamJar = path.join(__dirname, '../lib/canvasstream.jar');
     let args;
 
     if (fs.existsSync(emulatorJar)) {
-      // BẮT BUỘC đưa cả microemulator, nokiaui và file game .jar vào classpath!
-      const cpList = [emulatorJar];
+      // Đưa canvasstream.jar lên đầu để hook DisplayGraphics & khởi động CanvasStreamDriver
+      const cpList = [];
+      if (fs.existsSync(canvasStreamJar)) cpList.push(canvasStreamJar);
+      cpList.push(emulatorJar);
       if (fs.existsSync(nokiaUiJar)) cpList.push(nokiaUiJar);
       cpList.push(jarPath);
 
       const cp = cpList.join(process.platform === 'win32' ? ';' : ':');
       const midletClass = this.getMidletClass(jarPath);
+      const mainClass = fs.existsSync(canvasStreamJar) ? 'com.canvasstream.Main' : 'org.microemu.app.Main';
 
       if (midletClass) {
         this.log(`🎯 Tự động chạy MIDlet: ${midletClass}`);
@@ -102,7 +106,7 @@ class ProcessManager {
           '-Djava.awt.headless=false',
           '-cp',
           cp,
-          'org.microemu.app.Main',
+          mainClass,
           '--resizableDevice',
           '240',
           '320',
@@ -116,7 +120,7 @@ class ProcessManager {
           '-Djava.awt.headless=false',
           '-cp',
           cp,
-          'org.microemu.app.Main',
+          mainClass,
           '--resizableDevice',
           '240',
           '320',

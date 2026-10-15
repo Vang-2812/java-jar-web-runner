@@ -3,9 +3,9 @@ FROM ubuntu:22.04
 ENV DEBIAN_FRONTEND=noninteractive
 ENV DISPLAY=:99
 
-# Cài đặt OpenJDK Java, Xvfb, Openbox (Window Manager), xdotool, ImageMagick và curl
+# Cài đặt OpenJDK 11 JDK (kèm javac & jar), Xvfb, Openbox, xdotool, ImageMagick và curl
 RUN apt-get update && apt-get install -y \
-    openjdk-11-jre \
+    openjdk-11-jdk-headless \
     xvfb \
     openbox \
     xdotool \
@@ -26,6 +26,12 @@ RUN mkdir -p /app/lib && \
     curl -fsSL https://repo1.maven.org/maven2/org/microemu/microemu-nokiaui/2.0.4/microemu-nokiaui-2.0.4.jar -o /app/lib/microemu-nokiaui.jar
 
 COPY . .
+
+# Biên dịch CanvasStream Driver & J2SEDisplayGraphics hook thành canvasstream.jar
+RUN mkdir -p /app/build && \
+    javac -cp /app/lib/microemulator.jar -d /app/build /app/src/java/com/canvasstream/*.java /app/src/java/org/microemu/device/j2se/*.java && \
+    jar cf /app/lib/canvasstream.jar -C /app/build . && \
+    rm -rf /app/build
 
 RUN chmod +x entrypoint.sh && mkdir -p /app/storage /app/games /app/lib
 

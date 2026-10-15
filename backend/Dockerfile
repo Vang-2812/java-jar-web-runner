@@ -5,9 +5,13 @@ ENV DISPLAY=:99
 ENV LANG=C.UTF-8
 ENV LC_ALL=C.UTF-8
 
-# Cài đặt OpenJDK 11 JDK (kèm javac & jar), Xvfb, Openbox, xdotool, ImageMagick và curl
+# Cài đặt OpenJDK 11 JDK đầy đủ (có libawt_xawt.so cho X11), Xvfb, Openbox, xdotool, ImageMagick và curl
 RUN apt-get update && apt-get install -y \
-    openjdk-11-jdk-headless \
+    openjdk-11-jdk \
+    libxrender1 \
+    libxtst6 \
+    libxi6 \
+    fontconfig \
     xvfb \
     openbox \
     xdotool \

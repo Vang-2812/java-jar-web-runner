@@ -60,7 +60,7 @@ public class CanvasStreamDriver {
                 dis = new DataInputStream(new BufferedInputStream(socket.getInputStream()));
                 System.out.println("[CanvasStream] Connected to Node.js stream server!");
 
-                // Vòng lặp nhận sự kiện phím & chuột từ Web qua Node.js
+                // Loop receiving key and pointer events from Node.js
                 while (running && !socket.isClosed()) {
                     byte type = dis.readByte();
                     if (type == 1) { // KEY EVENT
@@ -78,7 +78,7 @@ public class CanvasStreamDriver {
                 try {
                     if (socket != null) socket.close();
                 } catch (Exception ignored) {}
-                // Chờ 2 giây rồi thử kết nối lại
+                // Wait 2 seconds before retrying connection
                 try { Thread.sleep(2000); } catch (InterruptedException ignored) {}
             }
         }
@@ -116,7 +116,7 @@ public class CanvasStreamDriver {
         }
     }
 
-    // Mã hoá số nguyên Zigzag VarInt
+    // Zigzag VarInt encoder
     public static void writeVarInt(OutputStream out, int val) throws IOException {
         int z = (val << 1) ^ (val >> 31);
         while ((z & ~0x7f) != 0) {
@@ -126,7 +126,7 @@ public class CanvasStreamDriver {
         out.write(z & 0x7f);
     }
 
-    // Gửi ảnh định nghĩa (DEF Type 5)
+    // Send sprite image definition (DEF Type 5)
     public static void sendImageDef(int id, int width, int height, BufferedImage img) {
         if (dos == null || sentImages.contains(id)) return;
         synchronized (lock) {
@@ -146,19 +146,19 @@ public class CanvasStreamDriver {
 
                 sentImages.add(id);
             } catch (Exception e) {
-                // bỏ qua nếu lỗi đường truyền
+                // ignore write error
             }
         }
     }
 
-    // Ghi lệnh vào frame buffer tạm
+    // Append drawing command to temporary frame buffer
     public static void appendCommand(byte[] cmdData) {
         synchronized (frameBuffer) {
             frameBuffer.write(cmdData, 0, cmdData.length);
         }
     }
 
-    // Đẩy frame hoàn chỉnh về Node.js (CMD Type 3)
+    // Flush completed frame to Node.js (CMD Type 3)
     public static void flushFrame(int w, int h, int clipX, int clipY, int clipW, int clipH) {
         if (dos == null) return;
         synchronized (lock) {
@@ -181,7 +181,7 @@ public class CanvasStreamDriver {
                 dos.write(cmds);
                 dos.flush();
             } catch (Exception e) {
-                // ngắt kết nối
+                // socket disconnected
             }
         }
     }

@@ -2,6 +2,8 @@ FROM ubuntu:22.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV DISPLAY=:99
+ENV LANG=C.UTF-8
+ENV LC_ALL=C.UTF-8
 
 # Cài đặt OpenJDK 11 JDK (kèm javac & jar), Xvfb, Openbox, xdotool, ImageMagick và curl
 RUN apt-get update && apt-get install -y \
@@ -27,9 +29,9 @@ RUN mkdir -p /app/lib && \
 
 COPY . .
 
-# Biên dịch CanvasStream Driver & J2SEDisplayGraphics hook thành canvasstream.jar
+# Biên dịch CanvasStream Driver & J2SEDisplayGraphics hook thành canvasstream.jar với mã UTF-8
 RUN mkdir -p /app/build && \
-    javac -cp /app/lib/microemulator.jar -d /app/build /app/src/java/com/canvasstream/*.java /app/src/java/org/microemu/device/j2se/*.java && \
+    javac -encoding UTF-8 -cp /app/lib/microemulator.jar -d /app/build /app/src/java/com/canvasstream/*.java /app/src/java/org/microemu/device/j2se/*.java && \
     jar cf /app/lib/canvasstream.jar -C /app/build . && \
     rm -rf /app/build
 

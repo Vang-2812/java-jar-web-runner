@@ -138,7 +138,7 @@ public class J2SEDisplayGraphics extends Graphics {
         writeVar(baos, x1);
         writeVar(baos, y1);
         writeVar(baos, x2);
-        writeVar(baos, y2);
+        writeVar(baos, x2);
         CanvasStreamDriver.appendCommand(baos.toByteArray());
     }
 
